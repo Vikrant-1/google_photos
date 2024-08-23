@@ -1,4 +1,5 @@
-export const removeAssetsFromPath = (path:string) => {
+
+export const removeAssetsFromPath = (path: string) => {
     if (path.startsWith('assets/')) {
         return path.replace('assets/', '');
     }

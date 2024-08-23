@@ -10,7 +10,7 @@ import { FlashList } from '@shopify/flash-list';
 export default function Home() {
   const { assets, loadLocalAssets, loading, hasNextPage } = useMedia();
   const { width } = useWindowDimensions();
-  
+
   const itemSize = Math.floor(width / 4);
 
   return (
@@ -33,12 +33,14 @@ export default function Home() {
                   source={{
                     uri: item.isLocalAsset
                       ? item.uri
-                      : getImagekitUrlFromPath(removeAssetsFromPath(item.path), [
-                          {
-                            height: 200,
-                            width: 200,
-                          },
-                        ]),
+                      : item.path
+                        ? getImagekitUrlFromPath(removeAssetsFromPath(item.path), [
+                            {
+                              height: 200,
+                              width: 200,
+                            },
+                          ])
+                        : item.uri,
                   }}
                   style={{ width: '100%', aspectRatio: 1 }}
                 />

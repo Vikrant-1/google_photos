@@ -6,13 +6,19 @@ import { supabase } from '~/utils/supabase';
 import { useAuth } from './AuthProvider';
 import mime from 'mime';
 
+type MediaLibraryAsset = MediaLibrary.Asset & {
+  isBackedUp: boolean;
+  isLocalAsset: boolean;
+  path?: string;
+};
+
 type MediaContextType = {
-  assets: MediaLibrary.Asset[];
+  assets: MediaLibraryAsset[];
   loadLocalAssets: () => void;
   loading: boolean;
   hasNextPage: boolean;
-  getAssetsById: (id: String) => MediaLibrary.Asset | undefined;
-  syncToCloud: (asset: MediaLibrary.Asset) => Promise<void>;
+  getAssetsById: (id: String) => MediaLibraryAsset  | undefined;
+  syncToCloud: (asset: MediaLibraryAsset) => Promise<void>;
 };
 
 const MediaContext = createContext<MediaContextType>({
@@ -26,11 +32,11 @@ const MediaContext = createContext<MediaContextType>({
 
 export function MediaContextProvider({ children }: PropsWithChildren) {
   const [permissionResponse, requestPermission] = MediaLibrary.usePermissions();
-  const [localAssets, setLocalAssets] = useState<MediaLibrary.Asset[]>([]);
+  const [localAssets, setLocalAssets] = useState<MediaLibraryAsset[]>([]);
   const [hasNextPage, setHasNextPage] = useState(true);
   const [hasEndCursor, setEndCursor] = useState<string>();
   const [loading, setLoading] = useState(false);
-  const [remoteAssets, setRemoteAssets] = useState<MediaLibrary.Asset[]>([]);
+  const [remoteAssets, setRemoteAssets] = useState<MediaLibraryAsset[]>([]);
   const { user } = useAuth();
 
   const assets = [...remoteAssets, ...localAssets.filter((assets) => !assets.isBackedUp)];
@@ -64,6 +70,10 @@ export function MediaContextProvider({ children }: PropsWithChildren) {
       mediaType: [MediaLibrary.MediaType.photo , MediaLibrary.MediaType.video],
     });
 
+    const video = assetsPage.assets.filter((asset) => asset.mediaType === MediaLibrary.MediaType.video);
+    console.log(video);
+    
+
     const newAssets = await Promise.all(
       assetsPage.assets.map(async (asset) => {
         const { count } = await supabase
@@ -87,7 +97,7 @@ export function MediaContextProvider({ children }: PropsWithChildren) {
     return assets.find((asset) => asset.id === id);
   };
 
-  const syncToCloud = async (asset: MediaLibrary.Asset) => {
+  const syncToCloud = async (asset: MediaLibraryAsset) => {
     const info = await MediaLibrary.getAssetInfoAsync(asset);
     if (!info.localUri) return;
     const base64String = await FileSystem.readAsStringAsync(info.localUri, {
