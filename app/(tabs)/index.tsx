@@ -20,7 +20,7 @@ export default function Home() {
         refreshing={loading}
         renderItem={({ item }) => {
           return (
-            <Link href={`/asset?id${item.id}`} asChild>
+            <Link href={`/asset?id=${item.id}`} asChild>
               <Pressable style={{width:"25%"}} >
                 <Image
                   key={item.id}
