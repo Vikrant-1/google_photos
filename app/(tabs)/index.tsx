@@ -1,30 +1,33 @@
 import { Link, Stack } from 'expo-router';
-import { FlatList, Pressable, Text } from 'react-native';
+import { FlatList, Pressable, Text, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { useMedia } from '~/providers/MediaProvider';
 import { AntDesign } from '@expo/vector-icons';
 import { getImagekitUrlFromPath } from '~/utils/imageKit';
 import { removeAssetsFromPath } from '~/utils/helper';
+import { FlashList } from '@shopify/flash-list';
 
 export default function Home() {
   const { assets, loadLocalAssets, loading, hasNextPage } = useMedia();
+  const { width } = useWindowDimensions();
+  
+  const itemSize = Math.floor(width / 4);
 
   return (
     <>
       <Stack.Screen options={{ title: 'Photos' }} />
-      <FlatList
+      <FlashList
         data={assets}
         keyExtractor={(item) => item.id}
         numColumns={4}
-        columnWrapperStyle={{ gap: 2 }}
-        contentContainerStyle={{ gap: 2 }}
         onEndReached={loadLocalAssets}
-        onEndReachedThreshold={2}
+        onEndReachedThreshold={3}
         refreshing={loading}
+        estimatedItemSize={itemSize}
         renderItem={({ item }) => {
           return (
             <Link href={`/asset?id=${item.id}`} asChild>
-              <Pressable style={{ width: '25%' }}>
+              <Pressable style={{ width: '100%' }}>
                 <Image
                   key={item.id}
                   source={{
