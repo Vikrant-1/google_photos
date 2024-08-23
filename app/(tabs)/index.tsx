@@ -1,5 +1,5 @@
-import { Stack } from 'expo-router';
-import { FlatList, Text } from 'react-native';
+import { Link, Stack } from 'expo-router';
+import { FlatList, Pressable, Text } from 'react-native';
 import { Image } from 'expo-image';
 import { useMedia } from '~/providers/MediaProvider';
 
@@ -20,11 +20,15 @@ export default function Home() {
         refreshing={loading}
         renderItem={({ item }) => {
           return (
-            <Image
-              key={item.id}
-              source={{ uri: item.uri }}
-              style={{ width: '25%', aspectRatio: 1 }}
-            />
+            <Link href={`/asset?id${item.id}`} asChild>
+              <Pressable style={{width:"25%"}} >
+                <Image
+                  key={item.id}
+                  source={{ uri: item.uri }}
+                  style={{ width: '100%', aspectRatio: 1 }}
+                />
+              </Pressable>
+            </Link>
           );
         }}
       />

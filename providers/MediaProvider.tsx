@@ -5,14 +5,16 @@ type MediaContextType = {
   assets: MediaLibrary.Asset[];
   loadLocalAssets: () => void;
   loading: boolean;
-  hasNextPage: boolean;
+    hasNextPage: boolean;
+    getAssetsById: (id: String) => MediaLibrary.Asset | undefined;
 };
 
 const MediaContext = createContext<MediaContextType>({
   assets: [],
   loadLocalAssets: () => {},
   loading: false,
-  hasNextPage: true,
+    hasNextPage: true,
+    getAssetsById: () => undefined,
 });
 
 export function MediaContextProvider({ children }: PropsWithChildren) {
@@ -41,14 +43,18 @@ export function MediaContextProvider({ children }: PropsWithChildren) {
       first: 30,
       after: hasEndCursor,
     });
-    console.log(JSON.stringify(assetsPage.assets, null, 2));
+    // console.log(JSON.stringify(assetsPage.assets, null, 2));
     setLocalAssets((existingAssets) => [...existingAssets, ...assetsPage.assets]);
     setHasNextPage(assetsPage.hasNextPage);
     setEndCursor(assetsPage.endCursor);
     setLoading(false);
   };
+    
+    const getAssetsById = (id: String) => {
+    return assets.find((asset) => asset.id === id);
+}
   return (
-    <MediaContext.Provider value={{ assets, loading, loadLocalAssets, hasNextPage }}>
+    <MediaContext.Provider value={{ assets, loading, loadLocalAssets, hasNextPage , getAssetsById }}>
       {children}
     </MediaContext.Provider>
   );
