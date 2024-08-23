@@ -1,22 +1,31 @@
 import { Stack } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
-
-import { ScreenContent } from '~/components/ScreenContent';
+import {} from 'react-native';
+import * as MediaLibrary from 'expo-media-library';
+import { useEffect } from 'react';
 
 export default function Home() {
+  const [permissionResponse, requestPermission] = MediaLibrary.usePermissions();
+
+  useEffect(() => {
+    if (permissionResponse?.status !== 'granted') {
+      requestPermission();
+    }
+  }, []);
+
+  useEffect(() => {
+    if (permissionResponse?.status === 'granted') {
+      loadLocalAssets();
+    }
+  }, [permissionResponse]);
+
+  const loadLocalAssets = async () => {
+    const assetsPage = await MediaLibrary.getAssetsAsync();
+    console.log(assetsPage);
+  };
+
   return (
     <>
-      <Stack.Screen options={{ title: 'Tab One' }} />
-      <View style={styles.container}>
-        <ScreenContent path="app/(tabs)/index.tsx" title="Tab One" />
-      </View>
+      <Stack.Screen options={{ title: 'Photos' }} />
     </>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 24,
-  },
-});
