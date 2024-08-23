@@ -1,20 +1,27 @@
 import { createContext, PropsWithChildren, useContext, useEffect, useState } from 'react';
 import * as MediaLibrary from 'expo-media-library';
+import * as FileSystem from 'expo-file-system';
+import { decode } from 'base64-arraybuffer';
+import { supabase } from '~/utils/supabase';
+import { useAuth } from './AuthProvider';
+import mime from 'mime';
 
 type MediaContextType = {
   assets: MediaLibrary.Asset[];
   loadLocalAssets: () => void;
   loading: boolean;
-    hasNextPage: boolean;
-    getAssetsById: (id: String) => MediaLibrary.Asset | undefined;
+  hasNextPage: boolean;
+  getAssetsById: (id: String) => MediaLibrary.Asset | undefined;
+  syncToCloud: (asset: MediaLibrary.Asset) => Promise<void>;
 };
 
 const MediaContext = createContext<MediaContextType>({
   assets: [],
   loadLocalAssets: () => {},
   loading: false,
-    hasNextPage: true,
-    getAssetsById: () => undefined,
+  hasNextPage: true,
+  getAssetsById: () => undefined,
+  syncToCloud: async () => {},
 });
 
 export function MediaContextProvider({ children }: PropsWithChildren) {
@@ -23,6 +30,7 @@ export function MediaContextProvider({ children }: PropsWithChildren) {
   const [hasNextPage, setHasNextPage] = useState(true);
   const [hasEndCursor, setEndCursor] = useState<string>();
   const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
     if (permissionResponse?.status !== 'granted') {
@@ -49,12 +57,29 @@ export function MediaContextProvider({ children }: PropsWithChildren) {
     setEndCursor(assetsPage.endCursor);
     setLoading(false);
   };
-    
-    const getAssetsById = (id: String) => {
+
+  const getAssetsById = (id: String) => {
     return assets.find((asset) => asset.id === id);
-}
+  };
+
+  const syncToCloud = async (asset: MediaLibrary.Asset) => {
+    const info = await MediaLibrary.getAssetInfoAsync(asset);
+    if (!info.localUri) return;
+    const base64String = await FileSystem.readAsStringAsync(info.localUri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    const arrayBuffer = decode(base64String);
+
+    const { data, error } = await supabase.storage
+      .from('assets')
+      .upload(`${user?.id}/${asset.filename}`, arrayBuffer, {
+        contentType: mime.getType(asset.filename) ?? 'image/jpeg',
+        upsert:true,
+      });
+  };
   return (
-    <MediaContext.Provider value={{ assets, loading, loadLocalAssets, hasNextPage , getAssetsById }}>
+    <MediaContext.Provider
+      value={{ assets, loading, loadLocalAssets, hasNextPage, getAssetsById, syncToCloud }}>
       {children}
     </MediaContext.Provider>
   );
