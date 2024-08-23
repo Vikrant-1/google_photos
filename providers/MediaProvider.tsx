@@ -70,12 +70,27 @@ export function MediaContextProvider({ children }: PropsWithChildren) {
     });
     const arrayBuffer = decode(base64String);
 
-    const { data, error } = await supabase.storage
+    const { data: storedFile, error } = await supabase.storage
       .from('assets')
       .upload(`${user?.id}/${asset.filename}`, arrayBuffer, {
         contentType: mime.getType(asset.filename) ?? 'image/jpeg',
-        upsert:true,
+        upsert: true,
       });
+
+    if (storedFile) {
+      const { data, error } = await supabase
+        .from('assets')
+        .upsert({
+          id: asset.id,
+          path: storedFile?.fullPath,
+          user_id: user?.id,
+          mediaType: asset.mediaType,
+          object_id: storedFile.id,
+        })
+        .select()
+        .single();
+      console.log(data, error);
+    }
   };
   return (
     <MediaContext.Provider
