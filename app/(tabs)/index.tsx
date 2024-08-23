@@ -27,6 +27,7 @@ export default function Home() {
     if (loading || !hasNextPage) return;
     setLoading(true);
     const assetsPage = await MediaLibrary.getAssetsAsync({
+      first:30,
       after: hasEndCursor,
     });
     console.log(JSON.stringify(assetsPage.assets, null, 2));
