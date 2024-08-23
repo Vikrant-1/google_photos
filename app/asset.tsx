@@ -3,6 +3,7 @@ import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { Text } from 'react-native';
 import { useMedia } from '~/providers/MediaProvider';
+import { removeAssetsFromPath } from '~/utils/helper';
 import { getImagekitUrlFromPath } from '~/utils/imageKit';
 
 export default function AssetPage() {
@@ -10,31 +11,37 @@ export default function AssetPage() {
 
   const { getAssetsById, syncToCloud } = useMedia();
   const asset = getAssetsById(id);
-  console.log(asset);
+  console.log(JSON.stringify(asset));
 
   if (!asset) {
     return <Text>Asset not found</Text>;
   }
+  let uri;
+  if (asset.isLocalAsset) {
+    uri = asset.uri;
+  } else {
+    uri = getImagekitUrlFromPath(removeAssetsFromPath(asset.path), [
+      {
+        height: 200,
+        width: 200,
+      },
+    ]);
+  }
 
-  const uri = getImagekitUrlFromPath('2df5dd82-7189-4042-b9fb-9f7b0b2cc1de/IMG20200920174043.jpg', [
-    {
-      height: 200,
-      width: 200,
-    },
-  ]);  
   return (
     <>
       <Stack.Screen
         options={{
           title: 'Photo',
-          headerRight: () => (
-            <AntDesign
-              onPress={() => syncToCloud(asset)}
-              name="cloudupload"
-              size={24}
-              color={'black'}
-            />
-          ),
+          headerRight: () =>
+            !asset.isBackedUp ? (
+              <AntDesign
+                onPress={() => syncToCloud(asset)}
+                name="cloudupload"
+                size={24}
+                color={'black'}
+              />
+            ) : null,
         }}
       />
       <Image source={{ uri: uri }} style={{ width: '100%', height: '100%' }} />

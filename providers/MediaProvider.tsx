@@ -26,11 +26,15 @@ const MediaContext = createContext<MediaContextType>({
 
 export function MediaContextProvider({ children }: PropsWithChildren) {
   const [permissionResponse, requestPermission] = MediaLibrary.usePermissions();
-  const [assets, setLocalAssets] = useState<MediaLibrary.Asset[]>([]);
+  const [localAssets, setLocalAssets] = useState<MediaLibrary.Asset[]>([]);
   const [hasNextPage, setHasNextPage] = useState(true);
   const [hasEndCursor, setEndCursor] = useState<string>();
   const [loading, setLoading] = useState(false);
+  const [remoteAssets, setRemoteAssets] = useState<MediaLibrary.Asset[]>([]);
   const { user } = useAuth();
+
+  const assets = [...remoteAssets, ...localAssets.filter((assets) => !assets.isBackedUp)];
+
 
   useEffect(() => {
     if (permissionResponse?.status !== 'granted') {
@@ -40,19 +44,40 @@ export function MediaContextProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     if (permissionResponse?.status === 'granted') {
+      loadRemoteAssets();
       loadLocalAssets();
     }
   }, [permissionResponse]);
+
+  const loadRemoteAssets = async () => {
+    const { data, error } = await supabase.from('assets').select('*');
+    if (data) {
+      setRemoteAssets(data);
+    }
+  };
 
   const loadLocalAssets = async () => {
     if (loading || !hasNextPage) return;
     setLoading(true);
     const assetsPage = await MediaLibrary.getAssetsAsync({
-      first: 30,
       after: hasEndCursor,
+      mediaType: [MediaLibrary.MediaType.photo , MediaLibrary.MediaType.video],
     });
-    // console.log(JSON.stringify(assetsPage.assets, null, 2));
-    setLocalAssets((existingAssets) => [...existingAssets, ...assetsPage.assets]);
+
+    const newAssets = await Promise.all(
+      assetsPage.assets.map(async (asset) => {
+        const { count } = await supabase
+          .from('assets')
+          .select('*', { count: 'exact', head: true })
+          .eq('id', asset.id);
+        return {
+          ...asset,
+          isBackedUp: !!count && count > 0,
+          isLocalAsset: true,
+        };
+      })
+    );
+    setLocalAssets((existingAssets) => [...existingAssets, ...newAssets]);
     setHasNextPage(assetsPage.hasNextPage);
     setEndCursor(assetsPage.endCursor);
     setLoading(false);
@@ -94,7 +119,14 @@ export function MediaContextProvider({ children }: PropsWithChildren) {
   };
   return (
     <MediaContext.Provider
-      value={{ assets, loading, loadLocalAssets, hasNextPage, getAssetsById, syncToCloud }}>
+      value={{
+        assets,
+        loading,
+        loadLocalAssets,
+        hasNextPage,
+        getAssetsById,
+        syncToCloud,
+      }}>
       {children}
     </MediaContext.Provider>
   );
