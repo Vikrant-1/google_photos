@@ -11,7 +11,6 @@ export default function AssetPage() {
 
   const { getAssetsById, syncToCloud } = useMedia();
   const asset = getAssetsById(id);
-  console.log(JSON.stringify(asset));
 
   if (!asset) {
     return <Text>Asset not found</Text>;
@@ -20,12 +19,14 @@ export default function AssetPage() {
   if (asset.isLocalAsset) {
     uri = asset.uri;
   } else {
-    uri = getImagekitUrlFromPath(removeAssetsFromPath(asset.path), [
-      {
-        height: 200,
-        width: 200,
-      },
-    ]);
+    uri = asset.path
+      ? getImagekitUrlFromPath(removeAssetsFromPath(asset.path), [
+          {
+            height: 200,
+            width: 200,
+          },
+        ])
+      : '';
   }
 
   return (

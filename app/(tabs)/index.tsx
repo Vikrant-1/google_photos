@@ -6,6 +6,7 @@ import { AntDesign } from '@expo/vector-icons';
 import { getImagekitUrlFromPath } from '~/utils/imageKit';
 import { removeAssetsFromPath } from '~/utils/helper';
 import { FlashList } from '@shopify/flash-list';
+import { useCallback } from 'react';
 
 export default function Home() {
   const { assets, loadLocalAssets, loading, hasNextPage } = useMedia();
@@ -13,21 +14,32 @@ export default function Home() {
 
   const itemSize = Math.floor(width / 4);
 
+  const handleEndReached = useCallback(() => {
+    if (hasNextPage && !loading) {
+      loadLocalAssets();
+    }
+    
+  }, [hasNextPage, loading, loadLocalAssets]);
+
+
   return (
     <>
       <Stack.Screen options={{ title: 'Photos' }} />
-      <FlashList
+      <FlatList
         data={assets}
         keyExtractor={(item) => item.id}
         numColumns={4}
-        onEndReached={loadLocalAssets}
-        onEndReachedThreshold={3}
+        onEndReached={handleEndReached}
+        onEndReachedThreshold={0.5}
         refreshing={loading}
-        estimatedItemSize={itemSize}
+        columnWrapperStyle={{ gap: 2 }}
+        contentContainerStyle={{ gap: 2 }}
+        initialNumToRender={20}
+        getItemLayout={(data, index) => ({ length: itemSize, offset: itemSize * index, index })}
         renderItem={({ item }) => {
           return (
             <Link href={`/asset?id=${item.id}`} asChild>
-              <Pressable style={{ width: '100%' }}>
+              <Pressable style={{ width: '25%' }}>
                 <Image
                   key={item.id}
                   source={{

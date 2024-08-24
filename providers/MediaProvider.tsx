@@ -65,32 +65,47 @@ export function MediaContextProvider({ children }: PropsWithChildren) {
   const loadLocalAssets = async () => {
     if (loading || !hasNextPage) return;
     setLoading(true);
-    const assetsPage = await MediaLibrary.getAssetsAsync({
-      after: hasEndCursor,
-      mediaType: [MediaLibrary.MediaType.photo , MediaLibrary.MediaType.video],
-    });
+  
+    try {
+      const assetsPage = await MediaLibrary.getAssetsAsync({
+        after: hasEndCursor,
+        mediaType: [MediaLibrary.MediaType.video,MediaLibrary.MediaType.photo],
+        first: 100,
+        sortBy: [MediaLibrary.SortBy.mediaType, MediaLibrary.SortBy.creationTime],
+        
+      });
+  
+      const assetIds = assetsPage.assets.map((asset) => asset.id);
+  
+      // Batch request to check if assets are backed up
+      const { data: backedUpAssets, error } = await supabase
+        .from('assets')
+        .select('id')
+        .in('id', assetIds);
+  
+      if (error) {
+        console.error('Error fetching backed up assets:', error);
+        setLoading(false);
+        return;
+      }
 
-    const video = assetsPage.assets.filter((asset) => asset.mediaType === MediaLibrary.MediaType.video);
-    console.log(video);
-    
-
-    const newAssets = await Promise.all(
-      assetsPage.assets.map(async (asset) => {
-        const { count } = await supabase
-          .from('assets')
-          .select('*', { count: 'exact', head: true })
-          .eq('id', asset.id);
-        return {
-          ...asset,
-          isBackedUp: !!count && count > 0,
-          isLocalAsset: true,
-        };
-      })
-    );
-    setLocalAssets((existingAssets) => [...existingAssets, ...newAssets]);
-    setHasNextPage(assetsPage.hasNextPage);
-    setEndCursor(assetsPage.endCursor);
-    setLoading(false);
+  
+      const backedUpAssetIds = new Set(backedUpAssets.map((asset) => asset.id));
+  
+      const newAssets = assetsPage.assets.map((asset) => ({
+        ...asset,
+        isBackedUp: backedUpAssetIds.has(asset.id),
+        isLocalAsset: true,
+      }));
+  
+      setLocalAssets((existingAssets) => [...existingAssets, ...newAssets]);
+      setHasNextPage(assetsPage.hasNextPage);
+      setEndCursor(assetsPage.endCursor);
+    } catch (error) {
+      console.error('Error loading local assets:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getAssetsById = (id: String) => {
